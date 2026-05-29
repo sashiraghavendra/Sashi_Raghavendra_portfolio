@@ -386,7 +386,7 @@ app.post("/api/contact", async (req, res) => {
 app.get("/api/messages", (req, res) => {
   try {
     const passcode = req.headers["x-admin-passcode"] || req.query.passcode;
-    const expectedPasscode = process.env.ADMIN_PASSCODE || "sashi789";
+    const expectedPasscode = process.env.ADMIN_PASSCODE || process.env.VITE_ADMIN_PASSCODE || "sashi789";
 
     if (passcode !== expectedPasscode) {
       return res.status(401).json({ error: "Access Denied: Invalid Authentication Passcode." });
@@ -407,7 +407,7 @@ app.get("/api/messages", (req, res) => {
 app.post("/api/messages/delete", (req, res) => {
   try {
     const { id, passcode } = req.body;
-    const expectedPasscode = process.env.ADMIN_PASSCODE || "sashi789";
+    const expectedPasscode = process.env.ADMIN_PASSCODE || process.env.VITE_ADMIN_PASSCODE || "sashi789";
 
     if (passcode !== expectedPasscode) {
       return res.status(401).json({ error: "Access Denied: Invalid Authentication Passcode." });

@@ -473,9 +473,7 @@ export default function Contact() {
                       {isDecrypting ? "Decrypting Buffer..." : "Unlock Archive"}
                     </button>
                     
-                    <p className="text-[9px] font-mono text-gray-600 leading-tight">
-                      Passwords configured via <code className="text-gray-400">ADMIN_PASSCODE</code>. Default is "sashi789".
-                    </p>
+                    
                   </form>
                 ) : (
                   /* Decrypted Transmission Outbox Database */
