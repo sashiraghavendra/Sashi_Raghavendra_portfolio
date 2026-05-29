@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { Calendar } from "lucide-react";
 import { resumeData } from "../../data/resume";
 
@@ -24,9 +25,34 @@ export default function Education() {
           {/* Main Institution Card (Left Span) */}
           <div className="md:col-span-8 space-y-6">
             {eduList.map((edu, idx) => (
-              <div
+              <motion.div
                 key={idx}
-                className="glass-pane border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-brand-pink/35 transition-all duration-300 relative overflow-hidden group"
+                animate={{
+                  borderColor: [
+                    "rgba(244, 63, 94, 0.15)",
+                    "rgba(168, 85, 247, 0.55)",
+                    "rgba(244, 63, 94, 0.75)",
+                    "rgba(244, 63, 94, 0.15)"
+                  ],
+                  boxShadow: [
+                    "0 0 0px rgba(244, 63, 94, 0)",
+                    "0 0 15px rgba(168, 85, 247, 0.2)",
+                    "0 0 25px rgba(244, 63, 94, 0.35)",
+                    "0 0 0px rgba(244, 63, 94, 0)"
+                  ]
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: idx * 0.5
+                }}
+                whileHover={{
+                  y: -4,
+                  scale: 1.01,
+                  filter: "brightness(1.1)"
+                }}
+                className="glass-pane border rounded-2xl p-6 sm:p-8 relative overflow-hidden group transition-all duration-300"
               >
                 {/* Back glowing pattern */}
                 <div className="absolute -top-10 -right-10 w-44 h-44 bg-brand-pink/5 rounded-full blur-2xl group-hover:scale-125 transition-transform" />
@@ -39,18 +65,18 @@ export default function Education() {
                     <h3 className="font-display text-xl sm:text-2xl font-bold text-white leading-tight">
                       {edu.institution}
                     </h3>
-                    <p className="text-xs text-gray-500 font-mono tracking-wider">
+                    <p className="text-xs text-gray-300 font-mono tracking-wider font-semibold">
                       📍 {edu.location}, India
                     </p>
                   </div>
 
-                  <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-xs font-mono text-gray-400">
+                  <div className="shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-xs font-mono text-gray-300">
                     <Calendar size={12} />
                     <span>{edu.startDate} – {edu.endDate}</span>
                   </div>
                 </div>
 
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -58,19 +84,46 @@ export default function Education() {
           <div className="md:col-span-4 space-y-6">
             
             {/* GPA Bento display */}
-            <div className="glass-pane border border-white/5 rounded-2xl p-6 flex flex-col justify-between hover:border-brand-pink/35 transition-all duration-300 bg-gradient-to-br from-purple-950/20 to-slate-950/20">
+            <motion.div
+              animate={{
+                borderColor: [
+                  "rgba(244, 63, 94, 0.15)",
+                  "rgba(168, 85, 247, 0.55)",
+                  "rgba(244, 63, 94, 0.75)",
+                  "rgba(244, 63, 94, 0.15)"
+                ],
+                boxShadow: [
+                  "0 0 0px rgba(244, 63, 94, 0)",
+                  "0 0 15px rgba(168, 85, 247, 0.2)",
+                  "0 0 25px rgba(244, 63, 94, 0.35)",
+                  "0 0 0px rgba(244, 63, 94, 0)"
+                ]
+              }}
+              transition={{
+                duration: 6,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 0.3
+              }}
+              whileHover={{
+                y: -4,
+                scale: 1.01,
+                filter: "brightness(1.1)"
+              }}
+              className="glass-pane border rounded-2xl p-6 flex flex-col justify-between transition-all duration-300 bg-gradient-to-br from-purple-950/20 to-slate-950/20"
+            >
               <div className="space-y-4">
                 <span className="font-mono text-xs text-brand-pink tracking-widest uppercase">Academic Standard</span>
                 
                 <div className="space-y-2">
-                  <p className="text-xs text-gray-500 uppercase tracking-widest font-mono">Consolidated CGPA</p>
+                  <p className="text-xs text-gray-300 uppercase tracking-widest font-mono font-semibold">Consolidated CGPA</p>
                   <p className="text-5xl font-mono font-bold tracking-tight text-white flex items-baseline gap-1">
-                    8.19 <span className="text-xs text-gray-500 font-normal">/ 10</span>
+                    8.19 <span className="text-xs text-gray-300 font-normal">/ 10</span>
                   </p>
                 </div>
               </div>
 
-            </div>
+            </motion.div>
 
           </div>
 

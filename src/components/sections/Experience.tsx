@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { Calendar, Award, CheckCircle } from "lucide-react";
 import { resumeData } from "../../data/resume";
 
@@ -29,8 +30,34 @@ export default function Experience() {
                 <Award size={12} className="sm:size-14" />
               </div>
 
-              {/* Card wrapper */}
-              <div className="glass-pane border border-white/5 rounded-2xl p-6 sm:p-8 hover:border-brand-purple/30 hover:shadow-[0_0_20px_rgba(168,85,247,0.05)] transition-all duration-300 space-y-4">
+              {/* Card wrapper with interactive colorful animated border highlight */}
+              <motion.div
+                animate={{
+                  borderColor: [
+                    "rgba(168, 85, 247, 0.15)",
+                    "rgba(6, 182, 212, 0.55)",
+                    "rgba(168, 85, 247, 0.75)",
+                    "rgba(168, 85, 247, 0.15)"
+                  ],
+                  boxShadow: [
+                    "0 0 0px rgba(168, 85, 247, 0)",
+                    "0 0 15px rgba(6, 182, 212, 0.2)",
+                    "0 0 25px rgba(168, 85, 247, 0.35)",
+                    "0 0 0px rgba(168, 85, 247, 0)"
+                  ]
+                }}
+                transition={{
+                  duration: 6,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                whileHover={{
+                  y: -4,
+                  scale: 1.01,
+                  filter: "brightness(1.1)"
+                }}
+                className="glass-pane border rounded-2xl p-6 sm:p-8 transition-all duration-300 space-y-4"
+              >
                 
                 {/* Meta details */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/5">
@@ -42,7 +69,7 @@ export default function Experience() {
                       {exp.company}
                     </h3>
                   </div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-xs font-mono text-gray-400">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-xs font-mono text-gray-300">
                     <Calendar size={12} />
                     <span>{exp.startDate} – {exp.endDate}</span>
                   </div>
@@ -58,10 +85,10 @@ export default function Experience() {
 
                 {/* Bullets */}
                 <div className="space-y-3 pt-2">
-                  <p className="text-xs font-mono text-gray-500 uppercase tracking-widest font-medium">Core Responsibilities & Learning Steps:</p>
+                  <p className="text-xs font-mono text-gray-300 uppercase tracking-widest font-semibold">Core Responsibilities & Learning Steps:</p>
                   <div className="grid grid-cols-1 gap-2.5">
                     {exp.achievements.map((bullet, bIdx) => (
-                      <div key={bIdx} className="flex items-start gap-2 text-xs text-gray-400 leading-relaxed">
+                      <div key={bIdx} className="flex items-start gap-2 text-xs text-gray-200 leading-relaxed font-normal">
                         <CheckCircle size={14} className="text-brand-purple/60 shrink-0 mt-0.5" />
                         <span>{bullet}</span>
                       </div>
@@ -71,7 +98,7 @@ export default function Experience() {
 
                 {/* Stack technologies used */}
                 <div className="pt-4 border-t border-white/5 flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest mr-2">Featured Tech:</span>
+                  <span className="text-[10px] font-mono text-gray-300 uppercase tracking-widest font-semibold mr-2">Featured Tech:</span>
                   {exp.technologies.map((tech, tIdx) => (
                     <span
                       key={tIdx}
@@ -82,7 +109,7 @@ export default function Experience() {
                   ))}
                 </div>
 
-              </div>
+              </motion.div>
 
             </div>
           ))}

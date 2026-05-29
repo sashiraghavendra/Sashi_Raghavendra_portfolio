@@ -2,20 +2,106 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   ArrowDown, Mail, Github, Linkedin, ArrowRight, Download, 
-  Camera, Upload, Link, Trash2, X 
+  Camera, Upload, Link, Trash2, X, Lock, Unlock 
 } from "lucide-react";
 import { resumeData } from "../../data/resume";
 import { exportResumePDF } from "../../utils/pdfExport";
+
+function resolveImageUrl(url: string | null): string {
+  if (!url) return "";
+  
+  if (url.includes("drive.google.com/file/d/")) {
+    const parts = url.split("/file/d/");
+    if (parts.length > 1) {
+      const id = parts[1].split("/")[0].split("?")[0];
+      return `https://lh3.googleusercontent.com/d/${id}`;
+    }
+  } else if (url.includes("drive.google.com/open?id=")) {
+    const parts = url.split("open?id=");
+    if (parts.length > 1) {
+      const id = parts[1].split("&")[0];
+      return `https://lh3.googleusercontent.com/d/${id}`;
+    }
+  } else if (url.includes("drive.google.com/uc?")) {
+    const matches = url.match(/[?&]id=([^&]+)/);
+    if (matches && matches[1]) {
+      return `https://lh3.googleusercontent.com/d/${matches[1]}`;
+    }
+  }
+  
+  return url;
+}
 
 export default function Hero() {
   const [skillIndex, setSkillIndex] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Load custom image from localStorage, or fall back to default github image URL
+  // Load custom image from localStorage, or fall back to default Google Drive image URL
   const [profileImg, setProfileImg] = useState<string | null>(() => {
-    return localStorage.getItem("sashi_portfolio_profile_img") || "https://github.com/sashiraghavendra.png";
+    const saved = localStorage.getItem("sashi_portfolio_profile_img");
+    return resolveImageUrl(saved || "https://drive.google.com/file/d/1Sv9xLW_yM7-DNZRZ_92KxB48yvAfrenv/view?usp=drive_link");
   });
+
+  // Admin access validation states
+  const [adminPassword, setAdminPassword] = useState<string>(() => {
+    return sessionStorage.getItem("sashi_admin_pass") || "";
+  });
+  const [passcodeInput, setPasscodeInput] = useState("");
+  const [authVerificationError, setAuthVerificationError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  // Sync state with sessionStorage changes (in case sashi unlocks in the Contact outbox)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setAdminPassword(sessionStorage.getItem("sashi_admin_pass") || "");
+    };
+    window.addEventListener("storage", handleStorageChange);
+    const interval = setInterval(handleStorageChange, 2000);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleVerifyAdminPass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passcodeInput) return;
+    setIsVerifying(true);
+    setAuthVerificationError("");
+
+    try {
+      const metaEnv = (import.meta as any).env || {};
+      const expectedPasscode = metaEnv.VITE_ADMIN_PASSCODE || "sashi789";
+
+      let isValid = false;
+      try {
+        const res = await fetch("/api/messages?passcode=" + encodeURIComponent(passcodeInput));
+        if (res.ok) {
+          isValid = true;
+        }
+      } catch (err) {
+        console.warn("Backend auth failed or offline, falling back to client environment check.");
+      }
+
+      if (!isValid && passcodeInput === expectedPasscode) {
+        isValid = true;
+      }
+
+      if (isValid) {
+        setAdminPassword(passcodeInput);
+        sessionStorage.setItem("sashi_admin_pass", passcodeInput);
+        setPasscodeInput("");
+        setAuthVerificationError("");
+      } else {
+        setAuthVerificationError("Access Denied: Invalid passcode.");
+      }
+    } catch (err) {
+      setAuthVerificationError("Verification interface failed.");
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   // Modal interaction states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,6 +150,7 @@ export default function Hero() {
   // Profile picture fallback detector - only runs if NO custom image is saved in localStorage
   useEffect(() => {
     if (localStorage.getItem("sashi_portfolio_profile_img")) return;
+    if (profileImg && profileImg.includes("googleusercontent.com")) return;
 
     const possiblePaths = [
       "/profile.png",
@@ -101,8 +188,9 @@ export default function Hero() {
       setUploadError("Please enter a valid URL starting with http/https or Data URI.");
       return;
     }
-    setProfileImg(imageUrlInput);
-    localStorage.setItem("sashi_portfolio_profile_img", imageUrlInput);
+    const resolved = resolveImageUrl(imageUrlInput);
+    setProfileImg(resolved);
+    localStorage.setItem("sashi_portfolio_profile_img", resolved);
     setImageUrlInput("");
     setIsModalOpen(false);
     setUploadError("");
@@ -161,7 +249,7 @@ export default function Hero() {
 
   const handleResetImage = () => {
     localStorage.removeItem("sashi_portfolio_profile_img");
-    setProfileImg("https://github.com/sashiraghavendra.png");
+    setProfileImg(resolveImageUrl("https://drive.google.com/file/d/1Sv9xLW_yM7-DNZRZ_92KxB48yvAfrenv/view?usp=drive_link"));
     setImageUrlInput("");
     setIsModalOpen(false);
     setUploadError("");
@@ -207,7 +295,7 @@ export default function Hero() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="text-gray-400 text-sm sm:text-base max-w-xl font-sans font-light leading-relaxed"
+            className="text-gray-200 text-sm sm:text-base max-w-xl font-sans font-light leading-relaxed"
           >
             {resumeData.personalInfo.summary}
           </motion.p>
@@ -234,22 +322,24 @@ export default function Hero() {
               <Mail size={14} />
             </a>
             
-            <button
-              onClick={handleDownloadPDF}
+            <a
+              href="https://drive.google.com/file/d/1fkRzPU0iCpf_JrNLUIDNb7WArj3HgtzZ/view?usp=drive_link"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-full text-xs font-mono font-medium tracking-wider uppercase text-brand-purple border border-brand-purple/20 hover:border-brand-purple hover:bg-brand-purple/10 transition-all duration-300 cursor-pointer clickable"
             >
-              <span>Download PDF</span>
+              <span>Download Resume</span>
               <Download size={14} />
-            </button>
+            </a>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.5 }}
-            className="flex items-center gap-4 pt-4 text-gray-450"
+            className="flex items-center gap-4 pt-4 text-gray-300"
           >
-            <p className="text-xs font-mono tracking-widest text-gray-600 uppercase">Connect</p>
+            <p className="text-xs font-mono tracking-widest text-gray-400 uppercase">Connect</p>
             <div className="w-8 h-[1px] bg-white/15" />
             <a
               href={resumeData.personalInfo.github}
@@ -279,47 +369,68 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Right Side Column: Clean visual avatar profile */}
+        {/* Right Side Column: Clean visual avatar profile with lock control */}
         <div className="lg:col-span-5 flex flex-col justify-center items-center">
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            className="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center p-1 bg-slate-950/20 backdrop-blur-md rounded-full border-2 border-brand-cyan/40 shadow-[0_0_35px_rgba(6,182,212,0.25)] overflow-hidden group hover:border-brand-cyan/80 hover:shadow-[0_0_50px_rgba(6,182,212,0.45)] transition-all duration-500"
-          >
-            {/* Hover overlay for changing profile picture */}
-            <div 
+          <div className="relative">
+            {/* Elegant control badge for admin verification status */}
+            <button
               onClick={() => setIsModalOpen(true)}
-              className="absolute inset-x-0 bottom-0 top-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 z-20 cursor-pointer select-none clickable"
+              className={`absolute -top-1 -right-1 z-30 p-2.5 rounded-full border transition-all duration-300 shadow-md flex items-center justify-center cursor-pointer ${
+                adminPassword 
+                  ? "bg-indigo-950/85 border-indigo-500/40 text-indigo-400 hover:bg-indigo-900" 
+                  : "bg-slate-950/80 border-white/10 text-gray-500 hover:text-white hover:border-white/30"
+              }`}
+              title={adminPassword ? "Console Unlocked (Admin Mode Enabled)" : "Sashi Terminal Lock"}
             >
-              <div className="p-3 rounded-full bg-brand-cyan/20 border border-brand-cyan/40 text-brand-cyan animate-pulse">
-                <Camera size={20} />
-              </div>
-              <span className="font-mono text-[10px] uppercase tracking-widest text-white font-medium text-center px-4">Change Profile Picture</span>
-            </div>
+              {adminPassword ? <Unlock size={14} className="animate-pulse" /> : <Lock size={14} />}
+            </button>
 
-            {/* Profile image with safe checks, or premium fallback avatar initials */}
-            {profileImg ? (
-              <img
-                src={profileImg}
-                alt={resumeData.personalInfo.name}
-                referrerPolicy="no-referrer"
-                className="w-full h-full rounded-full object-cover border border-brand-cyan/20 select-none shadow-[0_0_20px_rgba(6,182,212,0.15)] z-10 p-0.5 bg-slate-900 group-hover:scale-105 group-hover:border-brand-cyan/50 transition-transform duration-500"
-              />
-            ) : (
-              <div className="relative z-10 w-full h-full glass-pane border border-white/5 rounded-full flex flex-col items-center justify-center p-6 select-none bg-gradient-to-br from-brand-cyan/5 via-brand-purple/5 to-transparent">
-                <span className="font-display font-medium text-5xl sm:text-6xl text-white tracking-tight">
-                  DS
-                </span>
-                <span className="text-[10px] font-mono tracking-widest text-brand-cyan uppercase mt-3 text-center">
-                  Java & SQL Tech
-                </span>
-                <span className="text-[9px] font-mono tracking-widest text-gray-500 mt-1">
-                  CGPA: 8.19
-                </span>
-              </div>
-            )}
-          </motion.div>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.8 }}
+              className={`relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center p-1 bg-slate-950/20 backdrop-blur-md rounded-full border-2 border-brand-cyan/40 shadow-[0_0_35px_rgba(6,182,212,0.25)] overflow-hidden transition-all duration-500 ${
+                adminPassword ? "group hover:border-brand-cyan/80 hover:shadow-[0_0_50px_rgba(6,182,212,0.45)]" : ""
+              }`}
+            >
+              {/* Only allow changing photo if admin password is authenticated */}
+              {adminPassword && (
+                <div 
+                  onClick={() => setIsModalOpen(true)}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 z-20 cursor-pointer select-none clickable"
+                >
+                  <div className="p-3 rounded-full bg-brand-cyan/20 border border-brand-cyan/40 text-brand-cyan animate-pulse">
+                    <Camera size={20} />
+                  </div>
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-white font-medium text-center px-4">Change Profile Picture</span>
+                </div>
+              )}
+
+              {/* Profile image with safe checks, or premium fallback avatar initials */}
+              {profileImg ? (
+                <img
+                  src={profileImg}
+                  alt={resumeData.personalInfo.name}
+                  referrerPolicy="no-referrer"
+                  className={`w-full h-full rounded-full object-cover border border-brand-cyan/20 select-none shadow-[0_0_20px_rgba(6,182,212,0.15)] z-10 p-0.5 bg-slate-900 transition-transform duration-500 ${
+                    adminPassword ? "group-hover:scale-105 group-hover:border-brand-cyan/50" : ""
+                  }`}
+                />
+              ) : (
+                <div className="relative z-10 w-full h-full glass-pane border border-white/5 rounded-full flex flex-col items-center justify-center p-6 select-none bg-gradient-to-br from-brand-cyan/5 via-brand-purple/5 to-transparent">
+                  <span className="font-display font-medium text-5xl sm:text-6xl text-white tracking-tight">
+                    DS
+                  </span>
+                  <span className="text-[10px] font-mono tracking-widest text-brand-cyan uppercase mt-3 text-center">
+                    Java & SQL Tech
+                  </span>
+                  <span className="text-[9px] font-mono tracking-widest text-gray-500 mt-1">
+                    CGPA: 8.19
+                  </span>
+                </div>
+              )}
+            </motion.div>
+          </div>
         </div>
 
       </div>
@@ -366,91 +477,138 @@ export default function Hero() {
                 </button>
               </div>
 
-              {/* Error Message */}
-              {uploadError && (
-                <div className="mb-4 p-3 rounded-lg bg-red-950/20 text-red-400 border border-red-500/10 text-xs font-mono">
-                  {uploadError}
-                </div>
-              )}
-
-              <div className="space-y-5">
-                {/* Drag-and-Drop Area */}
-                <div
-                  onDragEnter={handleDrag}
-                  onDragOver={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDrop={handleDrop}
-                  className={`border-2 border-dashed rounded-xl h-36 flex flex-col justify-center items-center p-4 text-center transition-all duration-300 relative group cursor-pointer ${
-                    dragActive 
-                      ? "border-brand-cyan bg-brand-cyan/5 scale-[0.99]" 
-                      : "border-white/10 bg-slate-950/40 hover:border-brand-cyan/50 hover:bg-slate-950/60"
-                  }`}
-                >
-                  <input
-                    type="file"
-                    id="profile-upload"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                  />
-                  <div className="p-2.5 rounded-full bg-white/5 text-gray-400 group-hover:text-brand-cyan group-hover:bg-brand-cyan/5 transition-colors mb-2">
-                    <Upload size={18} />
+              {!adminPassword ? (
+                /* PASSWORD GATED ENTRY SCREEN FOR STATIC VISITORS / FRIENDS */
+                <form onSubmit={handleVerifyAdminPass} className="space-y-4 py-4 text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-indigo-950/45 border border-indigo-550/20 flex items-center justify-center text-indigo-400 mb-2">
+                    <Lock size={20} className="animate-pulse" />
                   </div>
-                  <p className="text-xs font-medium text-white">
-                    Drag and drop your image, or <span className="text-brand-cyan underline decoration-brand-cyan/30 group-hover:decoration-brand-cyan">browse</span>
-                  </p>
-                  <p className="text-[10px] text-gray-550 font-mono mt-1">Supports PNG, JPG (Max 2MB)</p>
-                </div>
+                  
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-semibold font-mono text-white tracking-wider uppercase">Authentication Required</h4>
+                    <p className="text-[11px] font-mono text-gray-400 leading-relaxed max-w-xs mx-auto">
+                      Only Sashi can customize the profile photo. Please enter your administrator passcode.
+                    </p>
+                  </div>
 
-                {/* OR divider */}
-                <div className="flex items-center gap-3 text-[10px] font-mono tracking-widest uppercase text-gray-600">
-                  <div className="h-[1px] bg-white/5 flex-grow" />
-                  <span>Or Paste Link</span>
-                  <div className="h-[1px] bg-white/5 flex-grow" />
-                </div>
-
-                {/* Image URL container */}
-                <div className="space-y-2">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-3 flex items-center text-gray-500">
-                      <Link size={14} />
-                    </div>
+                  <div className="space-y-2">
                     <input
-                      type="url"
-                      placeholder="Paste https://... web image link"
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
-                      className="w-full bg-slate-950/60 border border-white/10 rounded-xl py-2.5 pl-9 pr-20 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-cyan/60 transition-colors"
+                      required
+                      type="password"
+                      placeholder="Enter Admin Passcode"
+                      value={passcodeInput}
+                      onChange={(e) => setPasscodeInput(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-950/80 border border-white/10 rounded-xl text-center text-sm font-mono text-brand-cyan tracking-widest focus:outline-none focus:border-indigo-500/50"
                     />
+                    {authVerificationError && (
+                      <p className="text-[10px] font-mono text-rose-400 font-semibold">{authVerificationError}</p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
                     <button
-                      onClick={handleSaveUrl}
-                      disabled={!imageUrlInput.trim()}
-                      className="absolute right-1.5 top-1.5 px-3 py-1.5 rounded-lg bg-brand-cyan hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100 text-[10px] font-mono font-medium tracking-wider uppercase text-black transition-all"
+                      type="submit"
+                      disabled={isVerifying}
+                      className="flex-1 inline-flex items-center justify-center h-10 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-mono font-bold text-[10px] uppercase tracking-wider ease-out cursor-pointer disabled:opacity-55 active:scale-95 transition-all"
                     >
-                      Attach
+                      {isVerifying ? "Verifying..." : "Unlock Access"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5 transition-all font-mono text-[10px] uppercase tracking-wider cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* ACTUAL CUSTOMIZER INTERFACE (UNLOCKED) */
+                <div className="space-y-5">
+                  {/* Error Message */}
+                  {uploadError && (
+                    <div className="p-3 rounded-lg bg-red-950/20 text-red-400 border border-red-500/10 text-xs font-mono">
+                      {uploadError}
+                    </div>
+                  )}
+
+                  {/* Drag-and-Drop Area */}
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-xl h-36 flex flex-col justify-center items-center p-4 text-center transition-all duration-300 relative group cursor-pointer ${
+                      dragActive 
+                        ? "border-brand-cyan bg-brand-cyan/5 scale-[0.99]" 
+                        : "border-white/10 bg-slate-950/40 hover:border-brand-cyan/50 hover:bg-slate-950/60"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      id="profile-upload"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="p-2.5 rounded-full bg-white/5 text-gray-400 group-hover:text-brand-cyan group-hover:bg-brand-cyan/5 transition-colors mb-2">
+                      <Upload size={18} />
+                    </div>
+                    <p className="text-xs font-medium text-white">
+                      Drag and drop your image, or <span className="text-brand-cyan underline decoration-brand-cyan/30 group-hover:decoration-brand-cyan">browse</span>
+                    </p>
+                    <p className="text-[10px] text-gray-550 font-mono mt-1">Supports PNG, JPG (Max 2MB)</p>
+                  </div>
+
+                  {/* OR divider */}
+                  <div className="flex items-center gap-3 text-[10px] font-mono tracking-widest uppercase text-gray-600">
+                    <div className="h-[1px] bg-white/5 flex-grow" />
+                    <span>Or Paste Link</span>
+                    <div className="h-[1px] bg-white/5 flex-grow" />
+                  </div>
+
+                  {/* Image URL container */}
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-3 flex items-center text-gray-500">
+                        <Link size={14} />
+                      </div>
+                      <input
+                        type="url"
+                        placeholder="Paste https://... web image link"
+                        value={imageUrlInput}
+                        onChange={(e) => setImageUrlInput(e.target.value)}
+                        className="w-full bg-slate-950/60 border border-white/10 rounded-xl py-2.5 pl-9 pr-20 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-brand-cyan/60 transition-colors"
+                      />
+                      <button
+                        onClick={handleSaveUrl}
+                        disabled={!imageUrlInput.trim()}
+                        className="absolute right-1.5 top-1.5 px-3 py-1.5 rounded-lg bg-brand-cyan hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100 text-[10px] font-mono font-medium tracking-wider uppercase text-black transition-all"
+                      >
+                        Attach
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Reset Option */}
+                  <div className="pt-2 border-t border-white/5 flex gap-2">
+                    <button
+                      onClick={handleResetImage}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-xl bg-slate-950 hover:bg-red-950/20 text-red-400 hover:text-red-300 border border-white/5 hover:border-red-500/15 transition-all font-mono text-[10px] uppercase tracking-wider clickable"
+                    >
+                      <Trash2 size={13} />
+                      Reset to Default
+                    </button>
+                    
+                    <button
+                      onClick={() => setIsModalOpen(false)}
+                      className="flex-1 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5 transition-all font-mono text-[10px] uppercase tracking-wider clickable"
+                    >
+                      Cancel
                     </button>
                   </div>
                 </div>
-
-                {/* Reset Option */}
-                <div className="pt-2 border-t border-white/5 flex gap-2">
-                  <button
-                    onClick={handleResetImage}
-                    className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-xl bg-slate-950 hover:bg-red-950/20 text-red-400 hover:text-red-300 border border-white/5 hover:border-red-500/15 transition-all font-mono text-[10px] uppercase tracking-wider clickable"
-                  >
-                    <Trash2 size={13} />
-                    Reset to Default
-                  </button>
-                  
-                  <button
-                    onClick={() => setIsModalOpen(false)}
-                    className="flex-1 h-10 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/5 transition-all font-mono text-[10px] uppercase tracking-wider clickable"
-                  >
-                    Cancel
-                  </button>
-                </div>
-
-              </div>
+              )}
             </motion.div>
           </div>
         )}

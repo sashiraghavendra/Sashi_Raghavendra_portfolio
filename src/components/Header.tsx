@@ -39,7 +39,7 @@ export default function Header() {
     { label: "Projects", href: "#projects", id: "projects" },
     { label: "Experience", href: "#experience", id: "experience" },
     { label: "Education", href: "#education", id: "education" },
-    { label: "Credentials", href: "#certifications", id: "certifications" },
+    { label: "Certifications", href: "#certifications", id: "certifications" },
     { label: "Contact", href: "#contact", id: "contact" }
   ];
 
@@ -86,8 +86,9 @@ export default function Header() {
         {/* Action button - Resume Download */}
         <div className="hidden lg:flex items-center">
           <a
-            href="/Desha_Sashi_Resume.txt"
-            download="Desha_Sashi_Resume.txt"
+            href="https://drive.google.com/file/d/1fkRzPU0iCpf_JrNLUIDNb7WArj3HgtzZ/view?usp=drive_link"
+            target="_blank"
+            rel="noopener noreferrer"
             className="group flex items-center gap-1.5 px-4 py-2 rounded-full border border-brand-purple/30 bg-brand-purple/5 text-xs font-mono font-medium text-brand-purple tracking-widest uppercase hover:bg-brand-purple hover:text-white hover:border-brand-purple shadow-sm shadow-brand-purple/10 hover:shadow-brand-purple/30 transition-all duration-300"
           >
             <span>Resume</span>
@@ -129,11 +130,12 @@ export default function Header() {
 
           <div className="pb-8">
             <a
-              href="/Desha_Sashi_Resume.txt"
-              download="Desha_Sashi_Resume.txt"
+              href="https://drive.google.com/file/d/1fkRzPU0iCpf_JrNLUIDNb7WArj3HgtzZ/view?usp=drive_link"
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-mono text-xs font-medium tracking-widest uppercase text-white bg-gradient-to-r from-brand-purple to-brand-cyan hover:brightness-110 active:scale-[0.98] transition-all shadow-md shadow-brand-purple/20"
             >
-              <span>Download Resume (.txt)</span>
+              <span>Download Resume</span>
               <ArrowUpRight size={15} />
             </a>
           </div>

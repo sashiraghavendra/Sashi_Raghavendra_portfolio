@@ -65,7 +65,7 @@ export default function App() {
             <p className="font-display font-medium text-sm text-gray-200">
                Desha Sashi Raghavendra Kumar Portfolio
             </p>
-            <p className="text-xs text-gray-500 font-mono tracking-widest uppercase">
+            <p className="text-xs text-gray-300 font-mono tracking-widest uppercase font-semibold">
               B.Tech Software Developer
             </p>
           </div>
@@ -74,7 +74,7 @@ export default function App() {
             {/* Quick jump up button */}
             <button
               onClick={scrollToTop}
-              className="p-2.5 rounded-full bg-slate-900 border border-white/10 text-gray-400 hover:text-brand-cyan hover:border-brand-cyan transition-all duration-300 shadow-lg cursor-pointer clickable"
+              className="p-2.5 rounded-full bg-slate-900 border border-white/10 text-gray-200 hover:text-brand-cyan hover:border-brand-cyan transition-all duration-300 shadow-lg cursor-pointer clickable"
               title="Return to top level"
             >
               <ArrowUp size={14} className="animate-pulse" />

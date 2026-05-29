@@ -337,6 +337,99 @@ export const resumeData: ResumeData = ${JSON.stringify(parsedResume, null, 2)};
   }
 });
 
+// REST Endpoint: Handle contact form submissions persistently on server without EmailJS
+app.post("/api/contact", async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: "Required fields missing (Name, Email, and Message are required)." });
+    }
+
+    const newMessage = {
+      id: "msg_" + Math.random().toString(36).substr(2, 9),
+      name,
+      email,
+      subject: subject || "No Subject",
+      message,
+      timestamp: new Date().toISOString()
+    };
+
+    const storagePath = path.join(process.cwd(), "messages.json");
+    let messages: any[] = [];
+    
+    if (fs.existsSync(storagePath)) {
+      try {
+        const fileContent = fs.readFileSync(storagePath, "utf-8");
+        messages = JSON.parse(fileContent);
+      } catch (err) {
+        messages = [];
+      }
+    }
+
+    messages.unshift(newMessage);
+    fs.writeFileSync(storagePath, JSON.stringify(messages, null, 2), "utf-8");
+
+    console.log(`[Contact Submission] Recieved message from ${name} (${email}): ${subject}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Your transmission was safely logged to the backend terminal database!",
+      data: newMessage
+    });
+  } catch (error: any) {
+    console.error("Contact API dispatch failed:", error);
+    return res.status(500).json({ error: "Backend database storage failure." });
+  }
+});
+
+// REST Endpoint to view logged contact messages (requires admin passcode authorization)
+app.get("/api/messages", (req, res) => {
+  try {
+    const passcode = req.headers["x-admin-passcode"] || req.query.passcode;
+    const expectedPasscode = process.env.ADMIN_PASSCODE || "sashi789";
+
+    if (passcode !== expectedPasscode) {
+      return res.status(401).json({ error: "Access Denied: Invalid Authentication Passcode." });
+    }
+
+    const storagePath = path.join(process.cwd(), "messages.json");
+    if (fs.existsSync(storagePath)) {
+      const fileContent = fs.readFileSync(storagePath, "utf-8");
+      return res.json(JSON.parse(fileContent));
+    }
+    return res.json([]);
+  } catch (err) {
+    return res.status(500).json({ error: "Unable to retrieve log database." });
+  }
+});
+
+// REST Endpoint to delete a specific message (requires admin passcode authorization)
+app.post("/api/messages/delete", (req, res) => {
+  try {
+    const { id, passcode } = req.body;
+    const expectedPasscode = process.env.ADMIN_PASSCODE || "sashi789";
+
+    if (passcode !== expectedPasscode) {
+      return res.status(401).json({ error: "Access Denied: Invalid Authentication Passcode." });
+    }
+
+    const storagePath = path.join(process.cwd(), "messages.json");
+    if (fs.existsSync(storagePath)) {
+      const fileContent = fs.readFileSync(storagePath, "utf-8");
+      let messages = JSON.parse(fileContent);
+      const originalLength = messages.length;
+      messages = messages.filter((msg: any) => msg.id !== id);
+
+      fs.writeFileSync(storagePath, JSON.stringify(messages, null, 2), "utf-8");
+      return res.json({ success: true, message: "Transmission successfully expunged." });
+    }
+
+    return res.status(404).json({ error: "No messages log database discovery." });
+  } catch (err) {
+    return res.status(500).json({ error: "Unable to complete database deletion." });
+  }
+});
+
 // Setup development server or build-serving
 async function igniteServer() {
   if (process.env.NODE_ENV !== "production") {
