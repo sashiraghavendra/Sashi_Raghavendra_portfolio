@@ -382,11 +382,31 @@ app.post("/api/contact", async (req, res) => {
   }
 });
 
+// Helper to get expected passcode from environment variables with safety sanitizations
+function getExpectedPasscode(): string {
+  const envVal = process.env.ADMIN_PASSCODE;
+  if (envVal && typeof envVal === "string") {
+    const trimmed = envVal.trim();
+    if (trimmed !== "" && trimmed !== "undefined" && trimmed !== "null") {
+      return trimmed;
+    }
+  }
+  const viteVal = process.env.VITE_ADMIN_PASSCODE;
+  if (viteVal && typeof viteVal === "string") {
+    const trimmed = viteVal.trim();
+    if (trimmed !== "" && trimmed !== "undefined" && trimmed !== "null") {
+      return trimmed;
+    }
+  }
+  return "sashi789";
+}
+
 // REST Endpoint to view logged contact messages (requires admin passcode authorization)
 app.get("/api/messages", (req, res) => {
   try {
-    const passcode = req.headers["x-admin-passcode"] || req.query.passcode;
-    const expectedPasscode = process.env.ADMIN_PASSCODE || process.env.VITE_ADMIN_PASSCODE || "sashi789";
+    const rawPasscode = req.headers["x-admin-passcode"] || req.query.passcode;
+    const passcode = typeof rawPasscode === "string" ? rawPasscode.trim() : "";
+    const expectedPasscode = getExpectedPasscode();
 
     if (passcode !== expectedPasscode) {
       return res.status(401).json({ error: "Access Denied: Invalid Authentication Passcode." });
@@ -406,8 +426,9 @@ app.get("/api/messages", (req, res) => {
 // REST Endpoint to delete a specific message (requires admin passcode authorization)
 app.post("/api/messages/delete", (req, res) => {
   try {
-    const { id, passcode } = req.body;
-    const expectedPasscode = process.env.ADMIN_PASSCODE || process.env.VITE_ADMIN_PASSCODE || "sashi789";
+    const { id, passcode: rawPasscode } = req.body;
+    const passcode = typeof rawPasscode === "string" ? rawPasscode.trim() : "";
+    const expectedPasscode = getExpectedPasscode();
 
     if (passcode !== expectedPasscode) {
       return res.status(401).json({ error: "Access Denied: Invalid Authentication Passcode." });

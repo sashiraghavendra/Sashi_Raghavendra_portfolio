@@ -72,11 +72,16 @@ export default function Hero() {
 
     try {
       const metaEnv = (import.meta as any).env || {};
-      const expectedPasscode = metaEnv.VITE_ADMIN_PASSCODE || "sashi789";
+      const envVal = metaEnv.VITE_ADMIN_PASSCODE || "";
+      const expectedPasscode = (envVal && envVal.trim() !== "" && envVal !== "undefined" && envVal !== "null")
+        ? envVal.trim()
+        : "sashi789";
+
+      const enteredPasscode = passcodeInput.trim();
 
       let isValid = false;
       try {
-        const res = await fetch("/api/messages?passcode=" + encodeURIComponent(passcodeInput));
+        const res = await fetch("/api/messages?passcode=" + encodeURIComponent(enteredPasscode));
         if (res.ok) {
           isValid = true;
         }
@@ -84,13 +89,13 @@ export default function Hero() {
         console.warn("Backend auth failed or offline, falling back to client environment check.");
       }
 
-      if (!isValid && passcodeInput === expectedPasscode) {
+      if (!isValid && enteredPasscode === expectedPasscode) {
         isValid = true;
       }
 
       if (isValid) {
-        setAdminPassword(passcodeInput);
-        sessionStorage.setItem("sashi_admin_pass", passcodeInput);
+        setAdminPassword(enteredPasscode);
+        sessionStorage.setItem("sashi_admin_pass", enteredPasscode);
         setPasscodeInput("");
         setAuthVerificationError("");
       } else {

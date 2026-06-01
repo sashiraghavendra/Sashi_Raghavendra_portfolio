@@ -40,15 +40,16 @@ export default function Contact() {
 
   const handleDecrypt = async (enteredPass: string) => {
     if (!enteredPass) return;
+    const sanitizedPass = enteredPass.trim();
     setIsDecrypting(true);
     setAuthError("");
     try {
-      const res = await fetch("/api/messages?passcode=" + encodeURIComponent(enteredPass));
+      const res = await fetch("/api/messages?passcode=" + encodeURIComponent(sanitizedPass));
       if (res.ok) {
         const data = await res.json();
         setSentHistory(data);
-        setAdminPassword(enteredPass);
-        sessionStorage.setItem("sashi_admin_pass", enteredPass);
+        setAdminPassword(sanitizedPass);
+        sessionStorage.setItem("sashi_admin_pass", sanitizedPass);
       } else {
         const errData = await res.json().catch(() => ({}));
         setAuthError(errData.error || "Authentication failed.");
